@@ -1,5 +1,6 @@
 #include <iostream>
 #include <vector>
+#include <queue>
 #include <algorithm>
 #include <string>
 #include <iomanip>
@@ -16,9 +17,10 @@ struct Proceso {
     int respuesta;
     int espera;
     int retorno;
+    int servicio_restante; // Para Round Robin
     
     Proceso(int p, int ll, int s) : pid(p), llegada(ll), servicio(s), 
-           inicio(-1), fin(-1), respuesta(-1), espera(-1), retorno(-1) {}
+           inicio(-1), fin(-1), respuesta(-1), espera(-1), retorno(-1), servicio_restante(s) {}
 };
 
 class SimuladorSO {
@@ -133,6 +135,89 @@ public:
         mostrarResultados("SPN");
     }
     
+    // Algoritmo Round Robin
+    void ejecutarRoundRobin() {
+        cout << "\n=== EJECUTANDO ROUND ROBIN ===" << endl;
+        int quantum;
+        cout << "Ingrese el quantum (>=2): ";
+        cin >> quantum;
+        
+        if(quantum < 2) {
+            cout << "Quantum debe ser >= 2. Usando quantum = 2" << endl;
+            quantum = 2;
+        }
+        
+        // Reiniciar servicio restante
+        for(auto& p : procesos) {
+            p.servicio_restante = p.servicio;
+            p.inicio = -1;
+        }
+        
+        queue<int> cola_listos;
+        int tiempo_actual = 0;
+        int indice = 0;
+        vector<bool> en_cola(procesos.size(), false);
+        
+        // Ordenar por tiempo de llegada
+        sort(procesos.begin(), procesos.end(), 
+             [](const Proceso& a, const Proceso& b) {
+                 return a.llegada < b.llegada;
+             });
+        
+        while(true) {
+            // Agregar procesos que han llegado
+            while(indice < procesos.size() && procesos[indice].llegada <= tiempo_actual) {
+                cola_listos.push(indice);
+                en_cola[indice] = true;
+                indice++;
+            }
+            
+            if(cola_listos.empty()) {
+                // No hay procesos listos
+                if(indice >= procesos.size()) break; // Todos terminados
+                tiempo_actual = procesos[indice].llegada;
+                continue;
+            }
+            
+            int proceso_idx = cola_listos.front();
+            cola_listos.pop();
+            en_cola[proceso_idx] = false;
+            
+            Proceso& proceso_actual = procesos[proceso_idx];
+            
+            // Primer despacho
+            if(proceso_actual.inicio == -1) {
+                proceso_actual.inicio = tiempo_actual;
+            }
+            
+            // Ejecutar por quantum o hasta terminar
+            int tiempo_ejecucion = min(quantum, proceso_actual.servicio_restante);
+            tiempo_actual += tiempo_ejecucion;
+            proceso_actual.servicio_restante -= tiempo_ejecucion;
+            
+            // Agregar nuevos procesos que llegaron durante la ejecucion
+            while(indice < procesos.size() && procesos[indice].llegada <= tiempo_actual) {
+                cola_listos.push(indice);
+                en_cola[indice] = true;
+                indice++;
+            }
+            
+            if(proceso_actual.servicio_restante > 0) {
+                // El proceso no termino, vuelve a la cola
+                cola_listos.push(proceso_idx);
+                en_cola[proceso_idx] = true;
+            } else {
+                // El proceso termino
+                proceso_actual.fin = tiempo_actual;
+                proceso_actual.respuesta = proceso_actual.inicio - proceso_actual.llegada;
+                proceso_actual.espera = proceso_actual.fin - proceso_actual.llegada - proceso_actual.servicio;
+                proceso_actual.retorno = proceso_actual.fin - proceso_actual.llegada;
+            }
+        }
+        
+        mostrarResultados("Round Robin (q=" + to_string(quantum) + ")");
+    }
+    
     void mostrarResultados(const string& algoritmo) {
         cout << "\n=== RESULTADOS " << algoritmo << " ===" << endl;
         cout << left << setw(5) << "PID" << "| " 
@@ -182,7 +267,8 @@ public:
             cout << "\n=== MENU PRINCIPAL ===" << endl;
             cout << "1. Ejecutar FCFS" << endl;
             cout << "2. Ejecutar SPN" << endl;
-            cout << "3. Salir" << endl;
+            cout << "3. Ejecutar Round Robin" << endl;
+            cout << "4. Salir" << endl;
             cout << "Seleccione una opcion: ";
             
             int opcion;
@@ -196,6 +282,9 @@ public:
                     ejecutarSPN();
                     break;
                 case 3:
+                    ejecutarRoundRobin();
+                    break;
+                case 4:
                     cout << "¡Hasta luego!" << endl;
                     return;
                 default:
