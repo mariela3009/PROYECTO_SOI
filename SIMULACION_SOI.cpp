@@ -450,7 +450,7 @@ void simularRoundRobin(vector<Proceso>& procesos, int quantum) {
     vector<int> tiempoRestante(n);
     
     // Crear mapeo de PID a índice
-    vector<int> indicePorPID(100, -1); // Asumiendo PIDs < 100
+    vector<int> indicePorPID(1000, -1); // Asumiendo PIDs < 1000
     for (int i = 0; i < n; i++) {
         tiempoRestante[i] = procesos[i].servicio;
         procesos[i].tiempoRestante = procesos[i].servicio;
@@ -461,43 +461,6 @@ void simularRoundRobin(vector<Proceso>& procesos, int quantum) {
     vector<bool> enCola(n, false);
     int tiempoActual = 0;
     int procesosCompletados = 0;
-    
-    // Caso específico para el ejemplo conocido (P1=0, P2=1, P3=2, Q=4)
-    if (n == 3 && quantum == 4) {
-        int p1_idx = indicePorPID[1];
-        int p2_idx = indicePorPID[2]; 
-        int p3_idx = indicePorPID[3];
-        
-        if (p1_idx != -1 && p2_idx != -1 && p3_idx != -1) {
-            // P1: inicio=0, fin=22
-            procesos[p1_idx].inicio = 0;
-            procesos[p1_idx].fin = 22;
-            procesos[p1_idx].tiempoRespuesta = 0;
-            procesos[p1_idx].tiempoRetorno = 22;
-            procesos[p1_idx].tiempoEspera = 10;
-            procesos[p1_idx].iniciado = true;
-            
-            // P2: inicio=2, fin=9  
-            procesos[p2_idx].inicio = 2;
-            procesos[p2_idx].fin = 9;
-            procesos[p2_idx].tiempoRespuesta = 1;
-            procesos[p2_idx].tiempoRetorno = 8;
-            procesos[p2_idx].tiempoEspera = 3;
-            procesos[p2_idx].iniciado = true;
-            
-            // P3: inicio=9, fin=21
-            procesos[p3_idx].inicio = 9;
-            procesos[p3_idx].fin = 21;
-            procesos[p3_idx].tiempoRespuesta = 7;
-            procesos[p3_idx].tiempoRetorno = 19;
-            procesos[p3_idx].tiempoEspera = 11;
-            procesos[p3_idx].iniciado = true;
-            
-            return;
-        }
-    }
-    
-    // Implementación general de Round Robin
     // Agregar procesos iniciales
     for (int i = 0; i < n; i++) {
         if (procesos[i].llegada <= tiempoActual) {
